@@ -97,6 +97,8 @@
 		"downloads",
 		"storage",
 		"tabs",
+		"activeTab",
+		"http://localhost:5000/*",
 		"<all_urls>"
 	],
 	"optional_permissions": [
