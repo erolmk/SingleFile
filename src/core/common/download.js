@@ -201,31 +201,42 @@ async function downloadPage(pageData, options) {
 }
 
 async function downloadPageForeground(pageData, options) {
-	if (Array.isArray(pageData.content)) {
-		pageData.content = new Uint8Array(pageData.content);
-	}
-	if (options.sharePage && navigator.share) {
-		await sharePage(pageData, options);
-	} else {
-		let filename = pageData.filename;
-		if (options.confirmFilename) {
-			filename = ui.prompt("Save as", pageData.filename);
-			if (filename) {
-				pageData.filename = filename;
-			} else {
-				browser.runtime.sendMessage({ method: "downloads.cancel" });
-				browser.runtime.sendMessage({ method: "ui.processCancelled" });
-			}
-		}
-		if (filename) {
-			const link = document.createElement("a");
-			link.download = pageData.filename;
-			link.href = URL.createObjectURL(new Blob([pageData.content], { type: pageData.mimeType }));
-			link.dispatchEvent(new MouseEvent("click"));
-			return new Promise(resolve => setTimeout(() => { URL.revokeObjectURL(link.href); resolve(); }, 1000));
-		}
-	}
+        if (Array.isArray(pageData.content)) {
+                pageData.content = new Uint8Array(pageData.content);
+        }
+
+        // Convert content to string if it's a Uint8Array
+        let htmlContent;
+        if (pageData.content instanceof Uint8Array) {
+                htmlContent = new TextDecoder().decode(pageData.content);
+        } else {
+                htmlContent = pageData.content;
+        }
+
+        try {
+                const response = await fetch('http://localhost:5000/process_html', {
+                        method: 'POST',
+                        headers: {
+                                'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ html: htmlContent })
+                });
+
+                if (response.ok) {
+                        console.log('HTML content sent successfully.');
+                        // Optionally, handle the response from the server
+                        const result = await response.json();
+                        console.log('Server response:', result);
+                } else {
+                        console.error('Failed to send HTML content:', response.statusText);
+                }
+        } catch (error) {
+                console.error('Error sending HTML content:', error);
+        }
 }
+
+
+
 
 async function sharePage(pageData, options) {
 	sharePageBar = getSharePageBar();
